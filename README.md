@@ -175,3 +175,130 @@ Again, when the demo is launched, the model that is accessed is placed relative 
 ![SceneKitDemo](images/SceneKitDemo.gif)
 
 The view is largely the same. Since SceneKit is **node-based**, you see a count of nodes at the bottom of the screen of the fps for optimization purposes.
+
+### Metal Demo
+
+The metal project is, by far, the most complex template. That said, it is also the most interesting out of the box as it has interactivity built in and truly shows the excellent tracking available in the ecosystem.
+
+Metal projects are notoriuos for requiring **a lot** of boiler plate code, so I'm not going to copy/paste all the code from the files included in this template.
+
+The file structure looks like this:
+
+![Metal_NavigationPanel](images/Metal_NavigationPanel.png)
+
+You can see that this template includes shaders and far more code. This is normal for a Metal project. With the added complexity of the code you get a lot more power and speed.
+
+The ViewController.swift is far longer than in previous templates:
+
+```swift
+import UIKit
+import Metal
+import MetalKit
+import ARKit
+
+extension MTKView : RenderDestinationProvider {
+}
+
+class ViewController: UIViewController, MTKViewDelegate, ARSessionDelegate {
+    
+    var session: ARSession!
+    var renderer: Renderer!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Set the view's delegate
+        session = ARSession()
+        session.delegate = self
+        
+        // Set the view to use the default device
+        if let view = self.view as? MTKView {
+            view.device = MTLCreateSystemDefaultDevice()
+            view.backgroundColor = UIColor.clear
+            view.delegate = self
+            
+            guard view.device != nil else {
+                print("Metal is not supported on this device")
+                return
+            }
+            
+            // Configure the renderer to draw to the view
+            renderer = Renderer(session: session, metalDevice: view.device!, renderDestination: view)
+            
+            renderer.drawRectResized(size: view.bounds.size)
+        }
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(ViewController.handleTap(gestureRecognize:)))
+        view.addGestureRecognizer(tapGesture)
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Create a session configuration
+        let configuration = ARWorldTrackingConfiguration()
+
+        // Run the view's session
+        session.run(configuration)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Pause the view's session
+        session.pause()
+    }
+    
+    @objc
+    func handleTap(gestureRecognize: UITapGestureRecognizer) {
+        // Create anchor using the camera's current position
+        if let currentFrame = session.currentFrame {
+            
+            // Create a transform with a translation of 0.2 meters in front of the camera
+            var translation = matrix_identity_float4x4
+            translation.columns.3.z = -0.2
+            let transform = simd_mul(currentFrame.camera.transform, translation)
+            
+            // Add a new anchor to the session
+            let anchor = ARAnchor(transform: transform)
+            session.add(anchor: anchor)
+        }
+    }
+    
+    // MARK: - MTKViewDelegate
+    
+    // Called whenever view changes orientation or layout is changed
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+        renderer.drawRectResized(size: size)
+    }
+    
+    // Called whenever the view needs to render
+    func draw(in view: MTKView) {
+        renderer.update()
+    }
+    
+    // MARK: - ARSessionDelegate
+    
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        // Present an error message to the user
+        
+    }
+    
+    func sessionWasInterrupted(_ session: ARSession) {
+        // Inform the user that the session has been interrupted, for example, by presenting an overlay
+        
+    }
+    
+    func sessionInterruptionEnded(_ session: ARSession) {
+        // Reset tracking and/or remove existing anchors if consistent tracking is required
+        
+    }
+}
+
+```
+
+Many of the calls refer to the new `Renderer.swift` file, which I'll omit from this document. The file does seem to be a best-practices example for putting a renderer together with Metal and can probably be repurposed as is for other projects.
+
+When the demo is run, it allows users to place cubes in space and shows the excellent tracking that is enabled by ARKit.
+
+![MetalDemo](images/MetalDemo.gif)
