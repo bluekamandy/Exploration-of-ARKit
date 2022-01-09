@@ -90,3 +90,88 @@ When creating a SceneKit demo file, the navigation panel looks like this:
 ![SceneKit_NavigationPanel](images/SceneKit_NavigationPanel.png)
 
 Much of this is familiar, including the `AppDelegate.swift` and `ViewController file`. The new addition here is the `art.scnassets` object that has a `ship.scn` and a `texture.png` file in it.
+
+According to documentation the `.scnassets` bundle is simply a folder that has the `.scnassets` extension on it. You can put all kinds of SceneKit assets in these folders and, at compile time, Xcode optimizes each of the assets for each target device ([source](https://developer.apple.com/documentation/scenekit/scnscenesource)).
+
+The ship's geometry and texture are in the `art.scnassets` folder. It is possible to bring in other 3D models using the `.dae` or `.abc` file format. There is an option under the Editor pull-down menu to convert these formats to SceneKit's .scn format ([source](https://www.youtube.com/watch?v=jEFpbNErGsE)).
+
+The ViewController.swift file seems more complex than the RealityKit template, but it is essentially doing the same thing. Much of the include code is just boilerplate overrides that you can actually delete.
+
+```swift
+import UIKit
+import SceneKit
+import ARKit
+
+class ViewController: UIViewController, ARSCNViewDelegate {
+
+    @IBOutlet var sceneView: ARSCNView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Set the view's delegate
+        sceneView.delegate = self
+        
+        // Show statistics such as fps and timing information
+        sceneView.showsStatistics = true
+        
+        // Create a new scene
+        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        
+        // Set the scene to the view
+        sceneView.scene = scene
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Create a session configuration
+        let configuration = ARWorldTrackingConfiguration()
+
+        // Run the view's session
+        sceneView.session.run(configuration)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Pause the view's session
+        sceneView.session.pause()
+    }
+
+    // MARK: - ARSCNViewDelegate
+    
+/*
+    // Override to create and configure nodes for anchors added to the view's session.
+    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+        let node = SCNNode()
+     
+        return node
+    }
+*/
+    
+    func session(_ session: ARSession, didFailWithError error: Error) {
+        // Present an error message to the user
+        
+    }
+    
+    func sessionWasInterrupted(_ session: ARSession) {
+        // Inform the user that the session has been interrupted, for example, by presenting an overlay
+        
+    }
+    
+    func sessionInterruptionEnded(_ session: ARSession) {
+        // Reset tracking and/or remove existing anchors if consistent tracking is required
+        
+    }
+}
+
+```
+
+In the SceneKit template the main view is an instance of the [`ARSCNView`](https://developer.apple.com/documentation/arkit/arscnview) type.
+
+Again, when the demo is launched, the model that is accessed is placed relative to the center of the camera view. I believe this model is elevated within its scene, so it is elevated in the `ARSCNView` as well and on screen.
+
+![SceneKitDemo](images/SceneKitDemo.gif)
+
+The view is largely the same. Since SceneKit is **node-based**, you see a count of nodes at the bottom of the screen of the fps for optimization purposes.
